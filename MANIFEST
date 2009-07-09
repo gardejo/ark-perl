@@ -94,6 +94,8 @@ t/path_to.t
 t/path_to/lib/TestApp.pm
 t/plugin_authentication.t
 t/plugin_authentication_cred_password.t
+t/plugin_authentication_store_datamodel.t
+t/plugin_authentication_store_datamodelfast.t
 t/plugin_authentication_store_dbixclass.t
 t/plugin_authentication_store_model.t
 t/plugin_core.t
