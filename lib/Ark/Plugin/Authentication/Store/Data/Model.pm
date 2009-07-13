@@ -1,7 +1,7 @@
 package Ark::Plugin::Authentication::Store::Data::Model;
 use Ark::Plugin 'Auth';
 
-our $VERSION = '0.00_00';
+our $VERSION = '0.01_00';
 
 has 'data_model_model' => (
     is      => 'rw',
@@ -37,22 +37,24 @@ around 'find_user' => sub {
     my $prev = shift->(@_);
     return $prev if $prev;
 
-    my ($self, $id, $info) = @_;    # How I intend to use $info?
+    my ($self, $id, $info) = @_;
 
     my $model = $self->app->model( $self->data_model_model );
 
-    my $condition = {
-        where => [
-            $self->data_model_user_field => $id,
-        ],
-        limit => 1,
-    };
-
-    my $iterator = $model->get( $self->data_model_target => $condition );
-    return
-        unless $iterator;
-
-    my $user = $iterator->next;
+    my $user;
+    if ($model->can('find_user')) {
+        $user = $model->find_user($id, $info);
+    }
+    else {
+        my $iterator = $model->get( $self->data_model_target => {
+            where => [
+                $self->data_model_user_field => $id,
+            ],
+            limit => 1,
+        } );
+        return unless $iterator;
+        $user = $iterator->next;
+    }
 
     if ($user) {
         $self->ensure_class_loaded('Ark::Plugin::Authentication::User');
@@ -105,7 +107,7 @@ Ark::Plugin::Authentication::Store::Data::Model - Ark plugin for storing auth vi
 
 =head1 VERSION
 
-0.00_00
+0.01_00
 
 
 =head1 SYNOPSIS
@@ -125,7 +127,7 @@ Ark::Plugin::Authentication::Store::Data::Model - Ark plugin for storing auth vi
         Authentication::Store::Data::Model
     );
 
-    # as your pleasure...
+    # optional: as your pleasure...
     conf 'Plugin::Authentication::Store::Data::Model' => {
         model           => 'Foobar',            # *A
         target          => 'user',              # *B (same as default)
@@ -154,6 +156,7 @@ Ark::Plugin::Authentication::Store::Data::Model - Ark plugin for storing auth vi
         $c->detach(
               $c->req->method ne 'POST'         ? 'require_authentication'
             : $c->authenticate($c->req->params) ? 'authorized'
+                # alternate: $c->authenticate({id => $id, pw => $pw}), etc.
             :                                     'unauthorized'
         );
     }
@@ -213,6 +216,19 @@ Ark::Plugin::Authentication::Store::Data::Model - Ark plugin for storing auth vi
 
     # ...
 
+    # optional: as your pleasure...
+    sub find_user {
+        my ($self, $id, $info) = @_;
+
+        my @users = $self->get( user => {       # *B
+            name => lc $id,                     # ignore case
+            # you can use $info for any more conditions!
+        } );
+
+        return unless @users;                   # not found
+        return $users[0];                       # found
+    }
+
 =head2 Column schema of user table
 
     package MyApp::Schema::Column::User;        # *G
@@ -259,7 +275,39 @@ Ark::Plugin::Authentication::Store::Data::Model - Ark plugin for storing auth vi
 
 =head1 DESCRIPTION
 
-blah blah blah
+This module is a plugin for L<Ark|Ark>; to store authentication informations
+for any data by L<Data::Model|Data::Model>.
+
+=head2 Finding user
+
+Default behavior of finding user is below:
+
+=over 4
+
+=item 1. Constructs C<MyApp::Data::Model::new>.
+You can change the class-name into other one
+by C<conf> function (see L<SYNOPSIS|/"SYNOPSIS">).
+Most people will have the class delegete all method to
+L<Data::Model|Data::Model>'s model.
+
+=item 2. Finds row by C<user> column from C<username> model.
+You can change these column name and model name into other ones
+by C<conf> function (see L<SYNOPSIS|/"SYNOPSIS">).
+You can also define C<find_user> method for L<Data::Model|Data::Model>'s model
+(in that case, this plugin use the method instead of plugin's procedure).
+
+=item 3. Returns L<Ark::Plugin::Authentication::User|
+Ark::Plugin::Authentication::User> object as C<< $user >>.
+You can get L<Data::Model::Row|Data::Model::Row> object to call
+C<< $user->obj >> method.
+
+=item 4. Retrieves L<Ark::Plugin::Authentication::User|
+Ark::Plugin::Authentication::User> object as C<< $c->user >> over session,
+as your pleasure (under C<< use_plugins qw(Session)>>).
+You can get L<Data::Model::Row|Data::Model::Row> object to call
+C<< $c->user->obj >> method.
+
+=back
 
 
 =head1 SEE ALSO
@@ -267,9 +315,19 @@ blah blah blah
 =over 4
 
 =item L<Ark::Plugin::Authentication::Store::Data::Model::Fast|
-Ark::Plugin::Authentication::Store::Data::Model::Fast>
+        Ark::Plugin::Authentication::Store::Data::Model::Fast>
 
-This class looks-up a row B<by an index>. Maybe fast!
+This plugin looks-up a row B<by an index>. Maybe fast!
+
+=item L<Ark::Plugin::Authentication::Store::DBIx::Class|
+        Ark::Plugin::Authentication::Store::DBIx::Class>
+
+This plugin looks-up a row from L<DBIx::Class|DBIx::Class>'s model.
+
+=item L<Ark::Plugin::Autentication::Credential::Password|
+        Ark::Plugin::Autentication::Credential::Password>
+
+This plugin verifies password with user's row object.
 
 =back
 

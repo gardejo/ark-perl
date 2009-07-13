@@ -1,7 +1,7 @@
 package Ark::Plugin::Authentication::Store::Data::Model::Fast;
 use Ark::Plugin 'Auth';
 
-our $VERSION = '0.00_00';
+our $VERSION = '0.01_00';
 
 has 'data_model_model' => (
     is      => 'rw',
@@ -37,11 +37,17 @@ around 'find_user' => sub {
     my $prev = shift->(@_);
     return $prev if $prev;
 
-    my ($self, $id, $info) = @_;    # How I intend to use $info?
+    my ($self, $id, $info) = @_;
 
     my $model = $self->app->model( $self->data_model_model );
 
-    my $user = $model->lookup( $self->data_model_target => $id );
+    my $user;
+    if ($model->can('find_user')) {
+        $user = $model->find_user($id, $info);
+    }
+    else {
+        $user = $model->lookup( $self->data_model_target => $id );
+    }
 
     if ($user) {
         $self->ensure_class_loaded('Ark::Plugin::Authentication::User');
@@ -89,7 +95,7 @@ Ark::Plugin::Authentication::Store::Data::Model::Fast - Ark plugin for storing a
 
 =head1 VERSION
 
-0.00_00
+0.01_00
 
 
 =head1 SYNOPSIS
@@ -166,7 +172,19 @@ Ark::Plugin::Authentication::Store::Data::Model/"Column schema of user table">.
 
 =head1 DESCRIPTION
 
-blah blah blah
+This module is a plugin for L<Ark|Ark>; to store authentication informations
+for any data by L<Data::Model|Data::Model>.
+
+=head2 Finding user
+
+See L<same same section of Ark::Plugin::Authentication::Store::Data::Model|
+Ark::Plugin::Authentication::Store::Data::Model/"Finding user">.
+
+In addition, this C<Fast> plugin finds user's row
+on condition that user-name's field must be defined as key.
+See L<SYNOPSIS of Ark::Plugin::Authentication::Store::Data::Model|
+Ark::Plugin::Authentication::Store::Data::Model/"Table schema of user table">
+for further details.
 
 
 =head1 SEE ALSO
@@ -176,7 +194,17 @@ blah blah blah
 =item L<Ark::Plugin::Authentication::Store::Data::Model|
 Ark::Plugin::Authentication::Store::Data::Model>
 
-This class looks-up a row ordinarily (by C<< $model->get >>).
+This class looks-up a row without key (by C<< $model->get >>).
+
+=item L<Ark::Plugin::Authentication::Store::DBIx::Class|
+        Ark::Plugin::Authentication::Store::DBIx::Class>
+
+This plugin looks-up a row from L<DBIx::Class|DBIx::Class>'s model.
+
+=item L<Ark::Plugin::Autentication::Credential::Password|
+        Ark::Plugin::Autentication::Credential::Password>
+
+This plugin verifies password with user's row object.
 
 =back
 
