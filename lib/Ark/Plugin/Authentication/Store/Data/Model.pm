@@ -303,7 +303,7 @@ C<< $user->obj >> method.
 
 =item 4. Retrieves L<Ark::Plugin::Authentication::User|
 Ark::Plugin::Authentication::User> object as C<< $c->user >> over session,
-as your pleasure (under C<< use_plugins qw(Session)>>).
+as your pleasure (under C<< use_plugins qw(Session) >>).
 You can get L<Data::Model::Row|Data::Model::Row> object to call
 C<< $c->user->obj >> method.
 

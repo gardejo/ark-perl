@@ -112,11 +112,11 @@ Ark::Plugin::Authentication::Store::Data::Model::Fast - Ark plugin for storing a
 
         Authentication
         Authentication::Credential::Password
-        Authentication::Store::Data::Model
+        Authentication::Store::Data::Model::Fast
     );
 
     # as your pleasure...
-    conf 'Plugin::Authentication::Store::Data::Model' => {
+    conf 'Plugin::Authentication::Store::Data::Model::Fast' => {
         model           => 'Foobar',            # *A
         target          => 'user',              # *B (same as default)
         user_field      => 'id',                # *C (default is 'username')
