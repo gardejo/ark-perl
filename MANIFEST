@@ -51,6 +51,7 @@ lib/Ark/Plugin/Authentication.pm
 lib/Ark/Plugin/Authentication/Backend.pm
 lib/Ark/Plugin/Authentication/Credential/OpenID.pm
 lib/Ark/Plugin/Authentication/Credential/Password.pm
+lib/Ark/Plugin/Authentication/Store/Data/Model.pm
 lib/Ark/Plugin/Authentication/Store/DBIx/Class.pm
 lib/Ark/Plugin/Authentication/Store/Minimal.pm
 lib/Ark/Plugin/Authentication/Store/Model.pm
@@ -95,7 +96,7 @@ t/path_to/lib/TestApp.pm
 t/plugin_authentication.t
 t/plugin_authentication_cred_password.t
 t/plugin_authentication_store_datamodel.t
-t/plugin_authentication_store_datamodelfast.t
+t/plugin_authentication_store_datamodelbykey.t
 t/plugin_authentication_store_dbixclass.t
 t/plugin_authentication_store_model.t
 t/plugin_core.t

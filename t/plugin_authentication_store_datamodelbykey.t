@@ -4,32 +4,9 @@ use File::Temp;
 eval "use Data::Model";
 plan skip_all => 'Data::Model required to run this test' if $@;
 
-my $db = "testdatabase_datamodelfast";
+my $db  = "testdatabase_datamodelbykey";
+my $dsn = "dbi:SQLite:dbname=$db";
 END { unlink $db }
-
-{
-    # create Database
-    my $dbh = DBI->connect("dbi:SQLite:dbname=$db")
-        or die DBI->errstr;
-
-    $dbh->do(<<'...');
-CREATE TABLE user (
-    id INTEGER NOT NULL PRIMARY KEY,
-    username TEXT NOT NULL,
-    password TEXT NOT NULL
-);
-...
-
-    $dbh->do(<<'...');
-INSERT INTO user (id, username, password) values ('1', 'user1', 'pass1');
-...
-
-
-    $dbh->do(<<'...');
-INSERT INTO user (id, username, password) values ('2', 'user2', 'pass2');
-...
-
-}
 
 {
     package T1::Schema::Column;
@@ -55,17 +32,36 @@ INSERT INTO user (id, username, password) values ('2', 'user2', 'pass2');
     use Data::Model::Schema sugar => 't1';
     use Data::Model::Driver::DBI;
     my $driver = Data::Model::Driver::DBI->new(
-        dsn => "dbi:SQLite:dbname=$db",
+        dsn => $dsn,
     );
     base_driver( $driver );
 
     install_model user => schema {
         key 'id';
-        column 'user.id';
+        column 'user.id' => { auto_increment => 1 };
         column 'user.username';
         column 'user.password';
     };
 
+    if (! -f $db) {
+        # create Database
+        my $dbh = DBI->connect($dsn)
+            or die DBI->errstr;
+        foreach my $sql (__PACKAGE__->as_sqls) {
+            $dbh->do($sql);
+        }
+
+        $dbh->do(<<'...');
+INSERT INTO user (id, username, password) values ('1', 'user1', 'pass1');
+...
+
+
+        $dbh->do(<<'...');
+INSERT INTO user (id, username, password) values ('2', 'user2', 'pass2');
+...
+
+        $dbh->disconnect;
+    }
 }
 
 {
@@ -79,17 +75,18 @@ INSERT INTO user (id, username, password) values ('2', 'user2', 'pass2');
 
         Authentication
         Authentication::Credential::Password
-        Authentication::Store::Data::Model::Fast
+        Authentication::Store::Data::Model
         /;
 
-    conf 'Plugin::Authentication::Store::Data::Model::Fast' => {
+    conf 'Plugin::Authentication::Store::Data::Model' => {
         user_field => 'id',
+        by_key     => 1,
     };
     conf 'Plugin::Authentication::Credential::Password' => {
         user_field => 'id',
     };
 
-    package T1::Model::Data::Model::Fast;
+    package T1::Model::DataModel;
     use Ark 'Model::Adaptor';
 
     __PACKAGE__->config(
@@ -125,7 +122,7 @@ plan 'no_plan';
 
 use Ark::Test 'T1',
     components => [qw/Controller::Root
-                      Model::Data::Model::Fast
+                      Model::DataModel
                      /],
     reuse_connection => 1;
 

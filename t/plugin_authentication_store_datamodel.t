@@ -4,32 +4,9 @@ use File::Temp;
 eval "use Data::Model";
 plan skip_all => 'Data::Model required to run this test' if $@;
 
-my $db = "testdatabase_datamodel";
+my $db  = "testdatabase_datamodel";
+my $dsn = "dbi:SQLite:dbname=$db";
 END { unlink $db }
-
-{
-    # create Database
-    my $dbh = DBI->connect("dbi:SQLite:dbname=$db")
-        or die DBI->errstr;
-
-    $dbh->do(<<'...');
-CREATE TABLE user (
-    id INTEGER NOT NULL PRIMARY KEY,
-    username TEXT NOT NULL,
-    password TEXT NOT NULL
-);
-...
-
-    $dbh->do(<<'...');
-INSERT INTO user (username, password) values ('user1', 'pass1');
-...
-
-
-    $dbh->do(<<'...');
-INSERT INTO user (username, password) values ('user2', 'pass2');
-...
-
-}
 
 {
     package T1::Schema::Column;
@@ -55,17 +32,36 @@ INSERT INTO user (username, password) values ('user2', 'pass2');
     use Data::Model::Schema sugar => 't1';
     use Data::Model::Driver::DBI;
     my $driver = Data::Model::Driver::DBI->new(
-        dsn => "dbi:SQLite:dbname=$db",
+        dsn => $dsn,
     );
     base_driver( $driver );
 
     install_model user => schema {
         key 'id';
-        column 'user.id';
+        column 'user.id' => { auto_increment => 1 };
         column 'user.username';
         column 'user.password';
     };
 
+    if (! -f $db) {
+        # create Database
+        my $dbh = DBI->connect($dsn)
+            or die DBI->errstr;
+        foreach my $sql (__PACKAGE__->as_sqls) {
+            $dbh->do($sql);
+        }
+
+        $dbh->do(<<'...');
+INSERT INTO user (username, password) values ('user1', 'pass1');
+...
+
+
+        $dbh->do(<<'...');
+INSERT INTO user (username, password) values ('user2', 'pass2');
+...
+
+        $dbh->disconnect;
+    }
 }
 
 {
@@ -82,7 +78,7 @@ INSERT INTO user (username, password) values ('user2', 'pass2');
         Authentication::Store::Data::Model
         /;
 
-    package T1::Model::Data::Model;
+    package T1::Model::DataModel;
     use Ark 'Model::Adaptor';
 
     __PACKAGE__->config(
@@ -118,7 +114,7 @@ plan 'no_plan';
 
 use Ark::Test 'T1',
     components => [qw/Controller::Root
-                      Model::Data::Model
+                      Model::DataModel
                      /],
     reuse_connection => 1;
 
